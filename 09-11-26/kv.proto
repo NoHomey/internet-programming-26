@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package kv;
+
+option go_package = "./kvproto";
+
+message GetRequest {
+    int64 Key = 1;
+}
+
+message GetResponse {
+    int64 Key = 1;
+    int64 Value = 2;
+}
+
+message SetRequest {
+    int64 Key = 1;
+    int64 Value = 2;
+}
+
+message SetResponse {
+    int64 Key = 1;
+    int64 Value = 2;
+}
+
+service KVStore {
+    rpc Get (GetRequest) returns (GetResponse);
+
+    rpc Set (SetRequest) returns (SetResponse);
+}
