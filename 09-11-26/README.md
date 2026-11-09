@@ -11,6 +11,8 @@ brew install protobuf
 ```
 correctly installed it.
 
+For other OS-s visit [https://protobuf.dev/installation/](https://protobuf.dev/installation/).
+
 But as pointed out during the classes something was off with my Env Vars.
 
 So by adding the following lines to my `$HOME/.zshrc`
