@@ -55,13 +55,30 @@ func (server *Server) Handle(ctx context.Context, conn net.Conn) {
 	handleCtx, cancelHandleCtx := context.WithTimeout(ctx, time.Hour)
 	defer cancelHandleCtx()
 	for {
-		receiveCtx, cancelReceiveCtx := context.WithTimeout(handleCtx, ReciveCommandTimeout)
-		cmd := command.ReceiveCommand(receiveCtx, conn)
-		err := receiveCtx.Err()
-		if err != nil {
-
+		var cmd command.Command
+		op := func() error {
+			receiveCtx, cancelReceiveCtx := context.WithTimeout(handleCtx, ReciveCommandTimeout)
+			cmd = command.ReceiveCommand(receiveCtx, conn)
+			err := receiveCtx.Err()
+			cancelReceiveCtx()
+			return err
 		}
-		cancelReceiveCtx()
+
+		err := command.Retry(
+			10,
+			command.ConstPause(3*time.Second),
+			op,
+			func(err error) bool {
+				return true
+			},
+			true,
+		)
+
+		if err != nil {
+			fmt.Println("Got an error while trying to receive a command", err)
+			continue
+		}
+
 		if cmd.IsFail() {
 			fmt.Println("Failed to Receive command")
 			if cmd.IsEOF() {

@@ -124,18 +124,38 @@ func SendCommand(ctx context.Context, cmd Command, conn net.Conn) Command {
 	return SuccessResp()
 }
 
+func ConstPause(dur time.Duration) func(int, time.Duration) time.Duration {
+	return func(int, time.Duration) time.Duration {
+		return dur
+	}
+}
+
+func LinearPause(dur time.Duration) func(int, time.Duration) time.Duration {
+	return func(_i int, lastPause time.Duration) time.Duration {
+		return lastPause + dur
+	}
+}
+
+func ExpBackOffPause(linearPart time.Duration, exp float64) func(int, time.Duration) time.Duration {
+	return func(_i int, lastPause time.Duration) time.Duration {
+		return time.Duration(float64(int64(lastPause))*exp) + linearPart
+	}
+}
+
 func Retry(
 	num int,
-	pause time.Duration,
+	pauseFn func(int, time.Duration) time.Duration,
 	op func() error,
+	shouldRetry func(error) bool,
 	fastRetry bool,
 ) error {
 	lastErr := op()
 	if lastErr == nil {
 		return nil
 	}
+	pause := newPause(pauseFn)
 	if !fastRetry {
-		<-time.After(pause)
+		pause()
 	}
 	for i := 1; i < num; i++ {
 		err := op()
@@ -143,7 +163,20 @@ func Retry(
 			return nil
 		}
 		lastErr = err
-		<-time.After(pause)
+		if !shouldRetry(err) {
+			break
+		}
+		pause()
 	}
 	return lastErr
+}
+
+func newPause(pauseFn func(int, time.Duration) time.Duration) func() {
+	var currentDelay time.Duration
+	currentPause := 0
+	return func() {
+		currentDelay = pauseFn(currentPause, currentDelay)
+		<-time.After(currentDelay)
+		currentPause++
+	}
 }
