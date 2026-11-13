@@ -38,3 +38,13 @@ Next
 go get google.golang.org/protobuf
 ```
 was needed to install the ProtoBuf's Go deps.
+
+For the generation of the gRPC code (Client and Server Stub)
+```bash
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+protoc --go_out=. --go-grpc_out=. kv.proto
+```
+were needed to generate this code.
+The `go` command installs the `protoc-gen-go-groc` plugin.
+And the `protoc` command generates the actual code.
